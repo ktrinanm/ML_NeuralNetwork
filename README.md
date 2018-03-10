@@ -11,9 +11,9 @@ Rules:
 		branch. Imagine the flow as below:
 
 ->--master-----
-  \___V1______________________
-	\\\__Katrina branch_///   \__V2_________________
-	 \\__Jo's branch____//     
-	  \__Cashe's branch_/       
+  \\___V1______________________\n
+	\\\\\\__Katrina branch_///   \\__V2_________________\n
+	 \\\\__Jo's branch____// \n    
+	  \\__Cashe's branch_/       
 
 ... and so on.
