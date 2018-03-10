@@ -8,12 +8,5 @@ Rules:
 		we won't be using it. We will decide to open a new version, which
 		will directly branch off the last version branch. Each team
 		member should have their own branch that feeds into each version
-		branch. Imagine the flow as below:
+		branch. Message me if you're confused or have questions.
 
-->--master-----
-  \\___V1______________________\n
-	\\\\\\__Katrina branch_///   \\__V2_________________\n
-	 \\\\__Jo's branch____// \n    
-	  \\__Cashe's branch_/       
-
-... and so on.
