@@ -32,9 +32,8 @@ public class ClassificationNeuralNetwork
 
 		try
 		{
-			FileReader fileReader = new FileReader(dataFileName);
 			BufferedReader bufferedReader 
-				= new BufferedReader(fileReader);
+				= new BufferedReader(new FileReader(dataFileName));
 
 			while((line = bufferedReader.readLine()) != "")
 			{
