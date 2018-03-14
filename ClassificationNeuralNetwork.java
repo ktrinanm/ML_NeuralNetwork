@@ -3,19 +3,13 @@ import java.lang.Integer;
 
 public class ClassificationNeuralNetwork
 {
+	public static int [] classification;
+	public static double [] radii, textures, perimeters, area, smoothness,
+		   compactness, concavity, concavePnts, symmetry, fractalDim;
+	
 	public static void main(String [] args)
 	{
-	}
-
-	public static void readDataFromFile(int [] classification,
-			double [] radii, double [] textures, double [] perimeters,
-			double [] area, double [] smoothness, double [] compactness,
-			double [] concavity, double [] concavePnts, double [] symmetry, double [] fractalDim)
-	{
-		String dataFileName = "data.txt";
-		String line = "";
 		int numLines = 569;
-
 		classification = new int[numLines];
 		radii = new double[numLines];
 		textures = new double[numLines];
@@ -27,6 +21,13 @@ public class ClassificationNeuralNetwork
 		concavePnts = new double[numLines];
 		symmetry = new double[numLines];
 		fractalDim = new double[numLines];
+
+	}
+
+	public static void readDataFromFile()
+	{
+		String dataFileName = "data.txt";
+		String line = "";
 		int currLineNum = 0;
 
 		try
