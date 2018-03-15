@@ -31,16 +31,11 @@ public class ClassificationNeuralNetwork
 		symmetry = new double[numLines];
 		fractalDim = new double[numLines];
 
-		listOfTrainingData= new ArrayList<double[]>();
-		listOfTrainingClassifications= new ArrayList<Integer>();
-		
-		listOfTestData= new ArrayList<double[]>();
-		listOfTestClassifications= new ArrayList<Integer>();
 		
 		putDataInArrayList();
 		
-		//Every day I'm shufflin'
-		shuffle();
+		//Here's a title that's a little more descriptive.
+		randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists();
 		
 	}
 
@@ -85,6 +80,13 @@ public class ClassificationNeuralNetwork
 	
 	public static void putDataInArrayList()
 	{
+		
+			listOfTrainingData= new ArrayList<double[]>();
+			listOfTrainingClassifications= new ArrayList<Integer>();
+		
+			listOfTestData= new ArrayList<double[]>();
+			listOfTestClassifications= new ArrayList<Integer>();
+			
 		for(int i=0; i<numLines; i++)
 		{
 			double[] toAdd= new double[10];
@@ -105,7 +107,7 @@ public class ClassificationNeuralNetwork
 		}
 	}
 	
-	public static void shuffle()
+	public static void randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists()
 	{
 		int eightyPercentOfData= (int) (listOfTestData.size()*.8);
 		
@@ -115,8 +117,7 @@ public class ClassificationNeuralNetwork
 			listOfTrainingData.add(listOfTestData.remove(toRemove));
 			listOfTrainingClassifications.add(listOfTestClassifications.remove(toRemove));
 		}
-		
-		System.out.println("For reference, the size of the testing data is " + listOfTestData.size() + ", and the testing classification size is " + listOfTestClassifications.size() + ", which should be the same.");
-		System.out.println("For reference, the size of the training data is " + listOfTrainingData.size() + ", and the training classification size is " + listOfTrainingClassifications.size() + ", which should be the same.");
+		System.out.println("Testing Data Size: " + listOfTestData.size() + "\tTesting Classification Size: " + listOfTestClassifications.size() + "\tThese should be equal.");
+		System.out.println("Training Data Size: " + listOfTrainingData.size() + "\tTraining Classification Size: " + listOfTrainingClassifications.size() + "\tThese should be equal.");
 	}
 }
