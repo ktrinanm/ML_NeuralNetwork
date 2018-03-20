@@ -10,6 +10,13 @@ public class ClassificationNeuralNetwork
 	public static ArrayList<double[]> listOfTrainingData;
 	public static ArrayList<Integer> listOfTrainingClassifications;
 	
+	public static double[][] neurons;  //store the state of each neuron (or input and output node)
+	public static double[][][] weights;//stores what is says on the tin
+	public static int numLayers; //number of layers, first always input, end always output, middle hidden
+	public static int hiddenNeurons; //number of nodes in each hidden layer, probably should be per layer, but whatever
+	public static int numClasses; //number of clasifications, futureproofing
+	public static double learningRate; //the magic learning rate aka alpha
+	
 	public static ArrayList<double[]> listOfTestData;
 	public static ArrayList<Integer> listOfTestClassifications;
 	
@@ -36,6 +43,8 @@ public class ClassificationNeuralNetwork
 		
 		//Here's a title that's a little more descriptive.
 		randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists();
+
+		
 		
 	}
 
@@ -119,5 +128,58 @@ public class ClassificationNeuralNetwork
 		}
 		System.out.println("Testing Data Size: " + listOfTestData.size() + "\tTesting Classification Size: " + listOfTestClassifications.size() + "\tThese should be equal.");
 		System.out.println("Training Data Size: " + listOfTrainingData.size() + "\tTraining Classification Size: " + listOfTrainingClassifications.size() + "\tThese should be equal.");
+	}
+
+	public static double sigmoid(double inp){   //the sigmoid function
+	return 1 / (1+ Math.exp(0-inp));	// this will probably need to be scaled
+	}
+
+	public static void initWeights(boolean rand){
+		weights = new double[numLayers][hiddenNeurons][hiddenNeurons]; //yes, this is a memory hog.
+		double fixed = 1/hiddenNeurons; // this would have the first weights basically cause each neuron
+		// to return an average of its inputs
+		for(int cl=1; cl<numLayers; cl++){
+			for(int x=0; x<hiddenNeurons; x++){
+				for(int y=0; y<hiddenNeurons; y++){
+					if(rand){
+						weights[cl][x][y] = Math.random();
+					}
+					else{
+						weights[cl][x][y]=fixed;
+					}
+				}
+			}
+		}
+	}
+
+		
+	public static void think(double[] input){ // perform a run of the neural network on one datapoint. this will update network
+		int dimension = input.length;
+		neurons = new double[numLayers][hiddenNeurons];
+		for(int i=0; i<dimension; i++){ //populate the input layer
+			neurons[0][i] = sigmoid(input[i]);  //clamp everything to 0-1
+		}
+		
+		double currentSum=0; //this will store the sum
+		int dim=dimension; //temp variable
+		for(int cl = 1; cl<numLayers-1; cl++){
+			if(cl>1){dim = hiddenNeurons;} //avoid null pointers (in case there are fewer dimensions in the input than neurons per hidden layer)
+			for(int y=0; y<dim; y++){ //all neurons of the current layer
+				currentSum=0; //reset the sum for each neuron
+				for(int x=0; x<hiddenNeurons; x++){ // add up all neurons of the previous layer
+				currentSum+=neurons[cl-1][x]*weights[cl][x][y];
+				}
+				neurons[cl][y]=sigmoid(currentSum); //clamp the number to 0-1
+			}
+		}
+		
+		//just a little different for the last layer
+		for(int y=0; y<numClasses; y++){ //the output layer
+			currentSum=0;
+			for(int x=0; x<hiddenNeurons; x++){ // add up all neurons of the previous layer
+				currentSum+=neurons[numLayers-1][x]*weights[numLayers][x][y];
+			}
+			neurons[numLayers][y]=sigmoid(currentSum);
+		}
 	}
 }
