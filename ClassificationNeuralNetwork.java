@@ -19,6 +19,8 @@ public class ClassificationNeuralNetwork
 	public static double sigmoidScale; //scale the input of the sigmoid function
 	public static ArrayList<double[]> listOfTestData;
 	public static ArrayList<Integer> listOfTestClassifications;
+	public static double[] layerBias;
+	public static int numInputs;
 	
 	public static int numLines=569;
 	
@@ -37,8 +39,8 @@ public class ClassificationNeuralNetwork
 		concavePnts = new double[numLines];
 		symmetry = new double[numLines];
 		fractalDim = new double[numLines];
-
 		
+		readDataFromFile();
 		putDataInArrayList();
 		
 		//Here's a title that's a little more descriptive.
@@ -50,17 +52,19 @@ public class ClassificationNeuralNetwork
 		//init the variables
 		numLayers = 2; //0=input, 1=hidden, 2=output
 		hiddenNeurons = 6; //an arbitrary number i picked
+		numInputs = 10;
 		numClasses = 1; //technically 2, since zero counts
 		learningRate = .01; //ditto
-		sigmoidScale = .1; // scale the input to the sigmoid function
-		int currentSample = 68;
+		sigmoidScale = .5 ; // scale the input to the sigmoid function
+		int currentSample=1;
+		
 		initWeights(true); // true means it will be random
-		think(listOfTestData.get(currentSample)); //put the first data point through the network
-		//print the error (diffenence between the output state and the actual classification)
+		think(listOfTestData.get(1)); //put the first data point through the network
+		//	print the error (diffenence between the output state and the actual classification)
 		System.out.println("Benign weight: "+neurons[numLayers][0]);
 		System.out.println("Malignant weight: "+neurons[numLayers][1]);
 		System.out.println("Output error:");
-		if(listOfTestClassifications.get(currentSample)==0){ //if the tumor is benign
+		if(listOfTestClassifications.get(1)==0){ //if the tumor is benign
 			System.out.println(neurons[numLayers][0]-1);  //this should be 1, show the difference
 			System.out.println(neurons[numLayers][1]);    //this should be 0, show the difference
 		}
@@ -69,10 +73,10 @@ public class ClassificationNeuralNetwork
 			System.out.println(neurons[numLayers][1]-1);  //this should be 1, show the difference
 		}
 
-
+	}
 
 		
-	}
+	
 
 	public static void readDataFromFile()
 	{
@@ -85,7 +89,7 @@ public class ClassificationNeuralNetwork
 			BufferedReader bufferedReader 
 				= new BufferedReader(new FileReader(dataFileName));
 
-			while((line = bufferedReader.readLine()) != "")
+			while((line = bufferedReader.readLine()) != null)
 			{
 				String [] data = line.split(",");
 
@@ -103,13 +107,13 @@ public class ClassificationNeuralNetwork
 				fractalDim[currLineNum] = Double.parseDouble(data[11]);
 				currLineNum++;
 			}
-
 			bufferedReader.close();
 		}
 		catch (Exception exc)
 		{
 			System.out.println("Error reading data from file at line "
 					+ currLineNum);
+			System.out.println(line);
 		}
 	}
 	
@@ -161,14 +165,14 @@ public class ClassificationNeuralNetwork
 	}
 
 	public static void initWeights(boolean rand){
-		weights = new double[numLayers+1][hiddenNeurons+1][hiddenNeurons+1]; //yes, this is a memory hog.
+		weights = new double[numLayers+1][numInputs+1][numInputs+1]; //yes, this is a memory hog.
 		double fixed = 1/hiddenNeurons; // this would have the first weights basically cause each neuron
 		// to return an average of its inputs
-		for(int cl=1; cl<numLayers; cl++){
+		for(int cl=1; cl<=numLayers; cl++){
 			for(int x=0; x<hiddenNeurons; x++){
 				for(int y=0; y<hiddenNeurons; y++){
 					if(rand){
-						weights[cl][x][y] = Math.random();
+						weights[cl][x][y] = Math.random()*2-1;
 					}
 					else{
 						weights[cl][x][y]=fixed;
@@ -183,12 +187,12 @@ public class ClassificationNeuralNetwork
 		int dimension = input.length;
 		neurons = new double[numLayers+1][dimension+1];
 		for(int i=0; i<dimension; i++){ //populate the input layer
-			neurons[0][i] = sigmoid(input[i]);  //clamp everything to 0-1
+			neurons[0][i] = input[i];  //clamp everything to 0-1
 		}
 		
 		double currentSum=0; //this will store the sum
 		int dim=dimension; //temp variable
-		for(int cl = 1; cl<numLayers-1; cl++){
+		for(int cl = 1; cl<=numLayers-1; cl++){
 			if(cl>1){dim = hiddenNeurons;} //avoid null pointers (in case there are fewer dimensions in the input than neurons per hidden layer)
 			for(int y=0; y<dim; y++){ //all neurons of the current layer
 				currentSum=0; //reset the sum for each neuron
