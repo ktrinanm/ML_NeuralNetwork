@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 import java.lang.Integer;
 
-public class ClassificationNeuralNetwork {
+public class backpropagation {
     public static int [] classification;
     public static double [] radii, textures, perimeters, area, smoothness,
             compactness, concavity, concavePnts, symmetry, fractalDim;
