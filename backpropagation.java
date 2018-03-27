@@ -27,7 +27,7 @@ public class backpropagation {
 
 
     //start myStuff
-    public static int trainingReps = 100000; //will be used when running mine and joes code.
+    public static int trainingReps = 200 * 455; //will be used when running mine and joes code.
     int maxSamples = numLines;
 
     //end myStuff
@@ -65,7 +65,7 @@ public class backpropagation {
         numClasses = 2; //technically 2, since zero counts
         learningRate = .02; //ditto
         sigmoidScale = .5 ; // scale the input to the sigmoid function
-        int currentSample=1;
+        //int currentSample=1;
 
 
         initWeights(true); // true means it will be random
@@ -117,9 +117,9 @@ public class backpropagation {
 
         int errors = 0;
         int correct= 0;
-        for (int i = 1; i < listOfTestData.size(); i++){
+        for (int i = 0; i < listOfTestData.size(); i++){
             think(listOfTestData.get(i));
-            if (neurons[numLayers][0] > neurons[numLayers][1]){
+            if (neurons[numLayers][0] < .5){
                 guess = 0;
             } else {
                 guess = 1;
@@ -151,16 +151,16 @@ public class backpropagation {
         System.out.println("Correct: " +correct);
 
         //	print the error (diffenence between the output state and the actual classification)
-        System.out.println("Benign weight: "+neurons[numLayers][0]);
-        System.out.println("Malignant weight: "+neurons[numLayers][1]);
+        System.out.println("Output weight: "+neurons[numLayers][0]);
+        //System.out.println("Malignant weight: "+neurons[numLayers][1]);
         System.out.println("Output error:");
         if(listOfTestClassifications.get(1)==0){ //if the tumor is benign
             System.out.println(neurons[numLayers][0]-1);  //this should be 1, show the difference
-            System.out.println(neurons[numLayers][1]);    //this should be 0, show the difference
+            //System.out.println(neurons[numLayers][1]);    //this should be 0, show the difference
         }
         else{ //if the tumor is malignant
             System.out.println(neurons[numLayers][0]);    //this should be 0, show the difference
-            System.out.println(neurons[numLayers][1]-1);  //this should be 1, show the difference
+            //System.out.println(neurons[numLayers][1]-1);  //this should be 1, show the difference
         }
 
     }
@@ -310,18 +310,18 @@ public class backpropagation {
                 for (int x = 0; x < numInputs; x++) { // add up all neurons of the previous layer
                     currentSum += neurons[cl - 1][x] * weights[cl][x][y];
                 }
-                neurons[cl][y] = sigmoid(currentSum); //clamp the number to 0-1
+                neurons[cl][y] = currentSum; //clamp the number to 0-1
             }
         }
 
         //just a little different for the last layer
-        for (int y = 0; y < numClasses; y++) { //the output layer
-            currentSum = 0;
-            for (int x = 0; x < hiddenNeurons; x++) { // add up all neurons of the previous layer
-                currentSum += neurons[numLayers - 1][x] * weights[numLayers][x][y];
-            }
-            neurons[numLayers][y] = sigmoid(currentSum);
-        }
+        //for (int y = 0; y < numClasses; y++) { //the output layer
+		currentSum = 0;
+		for (int x = 0; x < hiddenNeurons; x++) { // add up all neurons of the previous layer
+			currentSum += sigmoid(neurons[numLayers - 1][x]) * weights[numLayers][x][0];
+		}
+		neurons[numLayers][0] = currentSum;
+        //}
     }
 
 
@@ -329,17 +329,17 @@ public class backpropagation {
     private static void backPropagate(int n) { //n is the datapoint index we are working on
         int INPUT_NEURONS = numInputs;
         int HIDDEN_NEURONS = hiddenNeurons; //UNKNOWN
-        int OUTPUT_NEURONS = numClasses;
+        int OUTPUT_NEURONS = 1;
         learningRate = .01;
 
         //activations
         double[] x = neurons[0];
-        double z[] = new double[hiddenNeurons];
+        double z[] = new double[hiddenNeurons]; // Hidden layer
         double y[] = new double[numClasses]; //actual array is given by outside method for random weights to start.
 
         // Unit errors.
-        double erro[] = new double[numClasses]; // erro array is the array that stores all of the changes that need to be made to the weights attached to an output node
-        double errh[] = new double[hiddenNeurons]; // errh array is the array that stores the changes that need to be made between hidden layers; again this will need to be changed depending on how we handle hidden layers.
+        //double erro[] = new double[numClasses]; // erro array is the array that stores all of the changes that need to be made to the weights attached to an output node
+        //double errh[] = new double[hiddenNeurons]; // errh array is the array that stores the changes that need to be made between hidden layers; again this will need to be changed depending on how we handle hidden layers.
 
         int[] r = new int[2]; //Target is the expected output neuron for each data set.
         z = neurons[1];
@@ -390,18 +390,17 @@ public class backpropagation {
 
         //Find Change in w weights (weights[1])
         for (int h = 0; h < HIDDEN_NEURONS; h++){
-             for (int i = 0; i < OUTPUT_NEURONS; i++){ //get the sum of (r[i]-y[i])v[i][h]
-                 sum += (r[i] - y[i])*v[h][i];
-             }
+             //for (int i = 0; i < OUTPUT_NEURONS; i++){ //get the sum of (r[i]-y[i])v[i][h]
+             double m = (r[0] - y[0])*v[h][0];
+             //}
              //System.out.println(sum);
              //System.out.println(z[h]);
-             double s = learningRate*sum*sigmoidDerivative(z[h]);
+             double s = learningRate*m*sigmoidDerivative(z[h]);
              for(int input = 0; input < numInputs; input++){
                 //deltaW[h] = vectorMultiplicationWithScalar(x, s); //deltaW[h] = [s*x[i]]
                 deltaW[input][h] = x[input]*s;
                 //System.out.println("DELTA W["+input+"]["+h+"]: " + deltaW[input][h] + ": " +z[h]);
              }
-            sum = 0;
             //System.out.println(Arrays.toString(deltaW[h]));
         }
 
