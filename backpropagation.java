@@ -27,7 +27,7 @@ public class backpropagation {
 
 
     //start myStuff
-    public static int trainingReps = 5; //will be used when running mine and joes code.
+    public static int trainingReps = 100000; //will be used when running mine and joes code.
     int maxSamples = numLines;
 
     //end myStuff
@@ -64,7 +64,7 @@ public class backpropagation {
         numInputs = 10;
         numClasses = 2; //technically 2, since zero counts
         learningRate = .02; //ditto
-        sigmoidScale = 1 ; // scale the input to the sigmoid function
+        sigmoidScale = .5 ; // scale the input to the sigmoid function
         int currentSample=1;
 
 
@@ -85,8 +85,8 @@ public class backpropagation {
 
         }
 
-
-        for (int i = 0; i <= numLayers; i++){
+        System.out.println();
+        for (int i = 1; i <= numLayers; i++){
             for (int j = 0; j<= 10; j++) {
                 System.out.println(j + ": " + Arrays.toString(weights[i][j]));
             }
@@ -307,7 +307,7 @@ public class backpropagation {
             } //avoid null pointers (in case there are fewer dimensions in the input than neurons per hidden layer)
             for (int y = 0; y < dim; y++) { //all neurons of the current layer
                 currentSum = 0; //reset the sum for each neuron
-                for (int x = 0; x < hiddenNeurons; x++) { // add up all neurons of the previous layer
+                for (int x = 0; x < numInputs; x++) { // add up all neurons of the previous layer
                     currentSum += neurons[cl - 1][x] * weights[cl][x][y];
                 }
                 neurons[cl][y] = sigmoid(currentSum); //clamp the number to 0-1
@@ -330,7 +330,7 @@ public class backpropagation {
         int INPUT_NEURONS = numInputs;
         int HIDDEN_NEURONS = hiddenNeurons; //UNKNOWN
         int OUTPUT_NEURONS = numClasses;
-        learningRate = 0.2;
+        learningRate = .01;
 
         //activations
         double[] x = neurons[0];
@@ -344,7 +344,7 @@ public class backpropagation {
         int[] r = new int[2]; //Target is the expected output neuron for each data set.
         z = neurons[1];
 
-        if (classification[n] == 1){
+        if (listOfTrainingClassifications.get(n) == 1){
             r[0] = 0; // node 0 = 0, node 1 = 1
             r[1] = 1;
         } else {
@@ -358,9 +358,10 @@ public class backpropagation {
         int layer = 0;//for now layer will be 0, or the input layer, because i'm not sure how our layers are working.
         double[][] w = weights[layer+1]; //wih is weights between input and hidden layers.
         double[][] v = weights[(weights.length-1)]; //who is weights of hidden to output
-        double deltaW[][] = new double[numInputs][hiddenNeurons];
-        double deltaV[][] = new double[hiddenNeurons][numClasses];
+        double deltaW[][] = new double[numInputs+1][hiddenNeurons]; //+1 for bias
+        double deltaV[][] = new double[hiddenNeurons+1][numClasses]; //+1 for bias
 
+        //Calculate z(hidden layer neuron values)
         double sum = 0.0;
         for (int h = 0; h < INPUT_NEURONS; h++){
             double s = vectorTransposeMultiplication(weights[1][h], x);
@@ -371,37 +372,64 @@ public class backpropagation {
             }
         }
 
+        //Calculate y(output layer neuron values)
         for (int i = 1; i < OUTPUT_NEURONS; i++){
             y[i] = vectorTransposeMultiplication(v[i], z);
 
         }
-        System.out.println(Arrays.toString(y));
-        for (int i = 1; i < OUTPUT_NEURONS; i++){
-            double s = learningRate*(r[i] - y[i]);
-            deltaV[i] = vectorMultiplicationWithScalar(z, s);
-        }
 
-        for (int h = 1; h < HIDDEN_NEURONS; h++){
+        //Find Change in v weights (weights[numLayers])
+        for (int i = 0; i < OUTPUT_NEURONS; i++){
+            double s = learningRate*(r[i] - y[i]);
+            for (int h = 0; h  < HIDDEN_NEURONS; h++){
+                deltaV[h][i] = z[h]*s; //vectorMultiplicationWithScalar(z, s);
+                //System.out.println("DELTA V["+h+"]["+i+"]: " + deltaV[h][i]);
+            }
+        }
+        //System.out.println(Arrays.deepToString(deltaV));
+
+        //Find Change in w weights (weights[1])
+        for (int h = 0; h < HIDDEN_NEURONS; h++){
              for (int i = 0; i < OUTPUT_NEURONS; i++){ //get the sum of (r[i]-y[i])v[i][h]
-                 sum += (r[i] - y[i])*v[i][h];
+                 sum += (r[i] - y[i])*v[h][i];
              }
              //System.out.println(sum);
              //System.out.println(z[h]);
              double s = learningRate*sum*sigmoidDerivative(z[h]);
-             deltaW[h] = vectorMultiplicationWithScalar(x, s);
-             sum = 0;
-             //System.out.println(Arrays.toString(deltaW[h]));
+             for(int input = 0; input < numInputs; input++){
+                //deltaW[h] = vectorMultiplicationWithScalar(x, s); //deltaW[h] = [s*x[i]]
+                deltaW[input][h] = x[input]*s;
+                //System.out.println("DELTA W["+input+"]["+h+"]: " + deltaW[input][h] + ": " +z[h]);
+             }
+            sum = 0;
+            //System.out.println(Arrays.toString(deltaW[h]));
         }
 
-        for (int i = 1; i < OUTPUT_NEURONS; i++){
-            v[i] = addVectors(v[i], deltaV[i]);
+        //Update v weights (weights[numLayers])
+        for (int i = 0; i < OUTPUT_NEURONS; i++){
+            for(int h = 0; h < HIDDEN_NEURONS; h++){
+                //v[i] = addVectors(v[i], deltaV[i]);
+                v[h][i] = v[h][i] + deltaV[h][i];
+                //System.out.println("V["+h+"]["+i+"]: " + v[h][i]);
+            }
+
         }
-        for (int h = 1; h < HIDDEN_NEURONS; h++){
-            w[h] = addVectors(w[h], deltaW[h]);
+        //Update w weights (weights[1])
+        for (int h = 0; h < HIDDEN_NEURONS; h++){
+            //w[h] = addVectors(w[h], deltaW[h]);
+            for (int input = 0; input < numInputs; input++){
+                w[input][h] = w[input][h] + deltaW[input][h];
+            }
         }
 
         weights[layer+1] = w; //actually update the weights
         weights[weights.length-1] = v; //actually update the
+
+
+
+        //System.out.println(Arrays.toString(y) + ": " + listOfTrainingClassifications.get(n));
+        //System.out.println(Arrays.toString(weights[2][0]));
+        //System.out.println(Arrays.toString(neurons[2]) + ": " + Arrays.toString(r) + ": " + listOfTrainingClassifications.get(n) + ": " + ((neurons[2][0] > neurons[2][1] && listOfTrainingClassifications.get(n) == 0) ? "SUCCESS" : "FAIL") );
         return;
     }
 
@@ -412,6 +440,9 @@ public class backpropagation {
 
     //Linear Algebra Helper Functions
     private static double vectorTransposeMultiplication(double[] A, double[] B){
+        if (A.length != B.length){
+            System.out.println("ERRROOOORRRROOORRROOOORR");
+        }
         double result = 0.0;
         for (int i = 0; i < A.length; i++){
             result += (A[i]*B[i]);
