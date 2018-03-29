@@ -20,6 +20,8 @@ public class backpropagation {
     public static ArrayList<Integer> listOfTestClassifications;
     public static double[] layerBias;
     public static int numInputs;
+    public static double[] scaleInput; //scale and offset such that all input data is in the range 0-1
+    public static double[] offsetInput;
 
     public static int numLines=569;
 
@@ -27,7 +29,7 @@ public class backpropagation {
 
 
     //start myStuff
-    public static int trainingReps = 200 * 455; //will be used when running mine and joes code.
+    public static int trainingReps = 1000 * 455; //will be used when running mine and joes code.
     int maxSamples = numLines;
 
     //end myStuff
@@ -51,11 +53,11 @@ public class backpropagation {
 
         readDataFromFile();
         putDataInArrayList();
-
-        //Here's a title that's a little more descriptive.
+        prescale(listOfTestData);
+                //Here's a title that's a little more descriptive.
         randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists();
-
-
+        ArrayList<double[]> temp = scaleAllTheThings(listOfTestData);
+        listOfTestData = temp;
         //example useage of the think method and init method
 
         //init the variables
@@ -63,7 +65,7 @@ public class backpropagation {
         hiddenNeurons = 6; //an arbitrary number i picked
         numInputs = 10;
         numClasses = 1; //technically 2, since zero counts
-        learningRate = .001; //ditto
+        learningRate = .0001; //ditto
         //sigmoidScale = .5 ; // scale the input to the sigmoid function
         //int currentSample=1;
 
@@ -480,6 +482,46 @@ public class backpropagation {
 		}
 
 		return result;
-	}
+    }
+    
+    public static void prescale(ArrayList<double[]> input){
+        int datSize = input.get(0).length;
+        double[] dataMax = new double[datSize];
+        double[] dataMin = new double[datSize];
+        offsetInput = new double[datSize];
+        scaleInput = new double[datSize];
+        double[] dat;
+        for(int i=0; i<datSize; i++){
+            dataMax[i]=(double)Double.MIN_VALUE;
+            dataMin[i]=(double)Double.MAX_VALUE;
+        }
+        for(int j=0; j<datSize; j++){
+            dat = input.get(j);
+            for(int i=0; i<datSize; i++){
+                if(dat[i] < dataMin[i]){dataMin[i]=dat[i];}
+                if(dat[i] > dataMax[i]){dataMax[i]=dat[i];}
+            }
+        }
+        for(int i=0; i<datSize; i++){
+            offsetInput[i] = dataMin[i];
+            scaleInput[i] = 1/(dataMax[i]-dataMin[i]);
+        }
+    }
+    public static double[] scaled(double[] input){
+        double[] temp = input;
+        int datSize = input.length;
+        for(int i=0; i<datSize; i++){
+            temp[i] = (input[i]-offsetInput[i])*scaleInput[i];
+        }
+        return temp;
+    }
+    public static ArrayList<double[]> scaleAllTheThings(ArrayList<double[]> input){
+        ArrayList<double[]> temp = new ArrayList<double[]>();
+
+      for(double[] d: input){
+            temp.add(scaled(d));
+        }
+        return temp;
+    }
 
 }
