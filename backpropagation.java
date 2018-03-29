@@ -89,9 +89,9 @@ public class backpropagation {
                 {
                     think(listOfTrainingData.get(j));
                     if( (sigmoid(neurons[2][0]) < 0.5
-                                && listOfTrainingClassifications.get(j) != 0)
+                            && listOfTrainingClassifications.get(j) != 0)
                             || (sigmoid(neurons[2][0]) >= 0.5
-                                && listOfTrainingClassifications.get(j) != 1))
+                            && listOfTrainingClassifications.get(j) != 1))
                     {
                         //System.out.println(sigmoid(neurons[2][0]));
                         errors++;
@@ -205,7 +205,7 @@ public class backpropagation {
         {
             System.out.println("Error reading data from file at line "
                     + currLineNum);
-			return;
+            return;
         }
     }
 
@@ -321,11 +321,11 @@ public class backpropagation {
 
         //just a little different for the last layer
         //for (int y = 0; y < numClasses; y++) { //the output layer
-		currentSum = 0;
-		for (int x = 0; x < hiddenNeurons+1; x++) { // add up all neurons of the previous layer
-			currentSum += sigmoid(neurons[numLayers - 1][x]) * weights[numLayers][x][0];
-		}
-		neurons[numLayers][0] = currentSum;
+        currentSum = 0;
+        for (int x = 0; x < hiddenNeurons+1; x++) { // add up all neurons of the previous layer
+            currentSum += sigmoid(neurons[numLayers - 1][x]) * weights[numLayers][x][0];
+        }
+        neurons[numLayers][0] = currentSum;
         //}
     }
 
@@ -357,7 +357,7 @@ public class backpropagation {
             double s = vectorTransposeMultiplication(w[h], x); //s = sumi(multiply w[h][i]*x[i])
             z[h] = sigmoid(s);
         }
-		z[HIDDEN_NEURONS] = 1; //set bias
+        z[HIDDEN_NEURONS] = 1; //set bias
 
         //Calculate y(output layer neuron values)
         for (int i = 0; i < OUTPUT_NEURONS; i++){
@@ -375,13 +375,13 @@ public class backpropagation {
 
         //Find Change in w weights (weights[1])
         for (int h = 0; h < HIDDEN_NEURONS; h++){
-             double m = (r - y[0])*v[0][h];
-             double s = learningRate*m*sigmoidDerivative(z[h]);
-             //System.out.print(s + ", ");
-             for(int input = 0; input < numInputs + 1; input++) {
-                 //deltaW[h] = vectorMultiplicationWithScalar(x, s); //deltaW[h] = [s*x[i]]
-                 deltaW[h][input] = x[input] * s;
-             }
+            double m = (r - y[0])*v[0][h];
+            double s = learningRate*m*sigmoidDerivative(z[h]);
+            //System.out.print(s + ", ");
+            for(int input = 0; input < numInputs + 1; input++) {
+                //deltaW[h] = vectorMultiplicationWithScalar(x, s); //deltaW[h] = [s*x[i]]
+                deltaW[h][input] = x[input] * s;
+            }
         }
         //System.out.println((r-y[0])*v[0][1]*learningRate*z[1]*(1-z[1]));
         //System.out.println("z*(1-z): " + sigmoidDerivative(z[0]));
@@ -391,7 +391,7 @@ public class backpropagation {
         for (int i = 0; i < OUTPUT_NEURONS; i++){
             v[i] = addVectors(v[i], deltaV[i]);
             //for(int h = 0; h < HIDDEN_NEURONS + 1; h++){
-                //v[i][h] = v[i][h] + deltaV[i][h];
+            //v[i][h] = v[i][h] + deltaV[i][h];
             //}
 
         }
@@ -447,20 +447,20 @@ public class backpropagation {
         return result;
     }
 
-	private static double [][] vectorTranspose(double[][] A)
-	{
-		double [][] result = new double[A[0].length][A.length];
+    private static double [][] vectorTranspose(double[][] A)
+    {
+        double [][] result = new double[A[0].length][A.length];
 
-		for(int i = 0; i < A.length; i++)
-		{
-			for(int j = 0; j < A[0].length; j++)
-			{
-				result[j][i] = A[i][j];
-			}
-		}
+        for(int i = 0; i < A.length; i++)
+        {
+            for(int j = 0; j < A[0].length; j++)
+            {
+                result[j][i] = A[i][j];
+            }
+        }
 
-		return result;
-	}
+        return result;
+    }
 
     public static void prescale(ArrayList<double[]> input){
         int datSize = input.get(0).length;
