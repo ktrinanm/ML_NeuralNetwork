@@ -15,7 +15,6 @@ public class backpropagation {
     public static int hiddenNeurons; //number of nodes in each hidden layer, probably should be per layer, but whatever
     public static int numClasses; //number of clasifications, futureproofing
     public static double learningRate; //the magic learning rate aka alpha
-    public static double sigmoidScale; //scale the input of the sigmoid function
     public static ArrayList<double[]> listOfTestData;
     public static ArrayList<Integer> listOfTestClassifications;
     public static int numInputs;
@@ -61,12 +60,11 @@ public class backpropagation {
         randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists();
 
         //
-        numLayers = 2; //0=input, 1=hidden, 2=output
+        numLayers = 3; //0=input, 1=hidden, 2=output
         hiddenNeurons = 6; //an arbitrary number i picked
         numInputs = 10;
         numClasses = 1; //outputNeuron (2 classes)
         learningRate = .0001;
-        sigmoidScale = 1 ; // scale the input to the sigmoid function
 
         //Initialize weights randomly
         initWeights(true); // true means it will be random
@@ -77,7 +75,9 @@ public class backpropagation {
             sample ++;
             if (sample == listOfTrainingData.size()){ //When all training data has been run through, start over.
                 int errors = 0;
-                for(int j = 0; j < sample; j++) // Run test on training data to see if we are converging or diverging
+ 				// Run test on training data to see if we are converging 
+				// or diverging
+                for(int j = 0; j < sample; j++)
                 {
                     think(listOfTrainingData.get(j));
                     if( (sigmoid(neurons[2][0]) < 0.5
@@ -88,7 +88,7 @@ public class backpropagation {
                         errors++;
                     }
                 }
-                //System.out.println("Errors in training: " + errors);
+                System.out.println("Errors in training: " + errors);
                 sample = 0;
             }
 
@@ -234,7 +234,7 @@ public class backpropagation {
     }
 
     public static double sigmoid(double inp){   //the sigmoid function
-        return 1.0 / (1.0+ Math.exp(0-inp*sigmoidScale));	// this will probably need to be scaled
+        return 1.0 / (1.0+ Math.exp(0-inp));	// this will probably need to be scaled
     }
 
     public static void initWeights(boolean rand){
