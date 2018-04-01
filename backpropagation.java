@@ -26,7 +26,7 @@ public class backpropagation {
     public static int numLines=569;
 
 
-    public static int epochs = 1000;
+    public static int epochs = 3000;
     public static int trainingReps = epochs * 455; //will be used when running mine and joes code.
 
 
@@ -62,10 +62,10 @@ public class backpropagation {
 
         //
         numLayers = 2; //0=input, 1=hidden, 2=output
-        hiddenNeurons = 6; //an arbitrary number i picked
+        hiddenNeurons = 16; //an arbitrary number i picked
         numInputs = 10;
         numClasses = 1; //outputNeuron (2 classes)
-        learningRate = .0001;
+        learningRate = .001;
         sigmoidScale = 1 ; // scale the input to the sigmoid function
 
         //Initialize weights randomly
@@ -88,7 +88,7 @@ public class backpropagation {
                         errors++;
                     }
                 }
-                //System.out.println("Errors in training: " + errors);
+                System.out.println("Errors in training: " + errors);
                 sample = 0;
             }
 
@@ -101,11 +101,10 @@ public class backpropagation {
         //Running Test on Testing data
         double guess; //calculated output for test data
         double real; //target output from test classification
-        int begninRight = 0;
-        int begninWrong = 0;
+        int benignRight = 0;
+        int benignWrong = 0;
         int malignantRight = 0;
         int malignantWrong = 0;
-
 
         int errors = 0;
         int correct= 0;
@@ -121,14 +120,14 @@ public class backpropagation {
             if (real == guess){ // update values if network guessed correctly
                 correct++;
                 if (real == 0){
-                    begninRight++;
+                    benignRight++;
                 } else {
                     malignantRight++;
                 }
             }else{ // Update values if network guessed incorrectly
                 errors++;
                 if (real == 0){
-                    begninWrong++;
+                    benignWrong++;
                 } else {
                     malignantWrong++;
                 }
@@ -140,12 +139,12 @@ public class backpropagation {
         //Data Analysis
         System.out.println("Correct: " + correct);
         System.out.println("Errors: " + errors);
-        System.out.println("Correctly identified Benign: " + begninRight);
-        System.out.println("Incorrectly identified Benign: " + begninWrong);
-        System.out.println("Correctly identified Malignant: " + malignantRight);
-        System.out.println("Incorrectly identified Malignant: " + malignantWrong);
-
-
+        System.out.println("Correctly identified Benign: " + benignRight);
+        System.out.println("Incorrectly identified Benign: " + benignWrong);
+        System.out.println("Correctly identified Malignant: " 
+				+ malignantRight);
+        System.out.println("Incorrectly identified Malignant: " 
+				+ malignantWrong);
     }
 
 
@@ -229,8 +228,15 @@ public class backpropagation {
             listOfTrainingData.add(listOfTestData.remove(toRemove));
             listOfTrainingClassifications.add(listOfTestClassifications.remove(toRemove));
         }
-        System.out.println("Testing Data Size: " + listOfTestData.size() + "\tTesting Classification Size: " + listOfTestClassifications.size() + "\tThese should be equal.");
-        System.out.println("Training Data Size: " + listOfTrainingData.size() + "\tTraining Classification Size: " + listOfTrainingClassifications.size() + "\tThese should be equal.");
+        System.out.println("Testing Data Size: " + listOfTestData.size() 
+				+ "\tTesting Classification Size: " 
+				+ listOfTestClassifications.size() 
+				+ "\tThese should be equal.");
+        System.out.println("Training Data Size: " 
+				+ listOfTrainingData.size() 
+				+ "\tTraining Classification Size: " 
+				+ listOfTrainingClassifications.size() 
+				+ "\tThese should be equal.");
     }
 
     public static double sigmoid(double inp){   //the sigmoid function
@@ -238,16 +244,16 @@ public class backpropagation {
     }
 
     public static void initWeights(boolean rand){
-        int dimension = listOfTestData.get(0).length;
-        weights = new double[numLayers+1][numInputs+1][numInputs+1]; //yes, this is a memory hog.
-        neurons = new double[numLayers + 1][dimension + 1];
+        //int dimension = listOfTestData.get(0).length;
+        weights = new double[numLayers+1][hiddenNeurons+1][hiddenNeurons+1]; //yes, this is a memory hog.
+        neurons = new double[numLayers + 1][hiddenNeurons + 1];
         double fixed = 1/hiddenNeurons; // this would have the first weights basically cause each neuron
         // to return an average of its inputs
 
         //initializes random weights for everything
         for(int cl=1; cl<=numLayers-1; cl++){
             for(int x=0; x<numInputs+1; x++){
-                for(int y=0; y<hiddenNeurons+1; y++){
+                for(int y=0; y<hiddenNeurons; y++){
                     if(rand){
                         weights[cl][x][y] = Math.random()*2-1;
                     }
@@ -257,12 +263,12 @@ public class backpropagation {
                 }
             }
 
-            neurons[cl][hiddenNeurons+1]=1; // this is the bias
+            neurons[cl][hiddenNeurons]=1; // this is the bias
         }
         neurons[0][numInputs]=1;
         //initializes random weights for output
         for(int x=0; x<hiddenNeurons+1; x++){
-            for(int y=0; y<1; y++){
+            for(int y=0; y<numClasses; y++){
                 if(rand){
                     weights[numLayers][x][y] = Math.random()*2-1;
                 }
@@ -283,13 +289,13 @@ public class backpropagation {
         }
         neurons[0][dimension] = 1;
 
-        double currentSum = 0; //this will store the sum
-        int dim = dimension; //temp variable
+        double currentSum = 0; // this will store the sum
+        //int dim = dimension; // temp variable
         for (int cl = 1; cl <= numLayers - 1; cl++) {
-            if (cl > 1) {
-                dim = hiddenNeurons;
-            } //avoid null pointers (in case there are fewer dimensions in the input than neurons per hidden layer)
-            for (int y = 0; y < dim; y++) { //all neurons of the current layer
+            //if (cl > 1) {
+                //dim = hiddenNeurons;
+            //} //avoid null pointers (in case there are fewer dimensions in the input than neurons per hidden layer)
+            for (int y = 0; y < hiddenNeurons; y++) { //all neurons of the current layer
                 currentSum = 0; //reset the sum for each neuron
                 for (int x = 0; x < numInputs+1; x++) { // add up all neurons of the previous layer
                     currentSum += neurons[cl - 1][x] * weights[cl][x][y];
