@@ -15,7 +15,6 @@ public class backpropagation {
     public static int hiddenNeurons; //number of nodes in each hidden layer, probably should be per layer, but whatever
     public static int numClasses; //number of clasifications, futureproofing
     public static double learningRate; //the magic learning rate aka alpha
-    public static double sigmoidScale; //scale the input of the sigmoid function
     public static ArrayList<double[]> listOfTestData;
     public static ArrayList<Integer> listOfTestClassifications;
     public static int numInputs;
@@ -61,15 +60,15 @@ public class backpropagation {
         randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists();
 
         //
-        numLayers = 2; //0=input, 1=hidden, 2=output
+        numLayers = 3; //0=input, 1=hidden, 2=output
         hiddenNeurons = 6; //an arbitrary number i picked
         numInputs = 10;
         numClasses = 1; //outputNeuron (2 classes)
-        learningRate = .0001;
-        sigmoidScale = 1 ; // scale the input to the sigmoid function
+        learningRate = .01;
 
         //Initialize weights randomly
         initWeights(true); // true means it will be random
+		int prevErr = 0;
 
         //Run Network
         int sample = 0;
@@ -77,19 +76,27 @@ public class backpropagation {
             sample ++;
             if (sample == listOfTrainingData.size()){ //When all training data has been run through, start over.
                 int errors = 0;
-                for(int j = 0; j < sample; j++) // Run test on training data to see if we are converging or diverging
+ 				// Run test on training data to see if we are converging 
+				// or diverging
+                for(int j = 0; j < sample; j++)
                 {
                     think(listOfTrainingData.get(j));
-                    if( (sigmoid(neurons[2][0]) < 0.5
-                            && listOfTrainingClassifications.get(j) != 0)
-                            || (sigmoid(neurons[2][0]) >= 0.5
-                            && listOfTrainingClassifications.get(j) != 1))
+                    if( (sigmoid(neurons[3][0]) < 0.5
+								&& listOfTrainingClassifications.get(j)!= 0)
+                            || (sigmoid(neurons[3][0]) >= 0.5
+								&& listOfTrainingClassifications.get(j)!=1))
                     {
                         errors++;
                     }
                 }
-                //System.out.println("Errors in training: " + errors);
+                System.out.println("Errors in training: " + errors);
                 sample = 0;
+				prevErr = errors;
+
+				if(prevErr < errors)
+				{
+					learningRate /= 2;
+				}
             }
 
             //Network Training
@@ -147,9 +154,6 @@ public class backpropagation {
 
 
     }
-
-
-
 
     public static void readDataFromFile()
     {
@@ -234,7 +238,7 @@ public class backpropagation {
     }
 
     public static double sigmoid(double inp){   //the sigmoid function
-        return 1.0 / (1.0+ Math.exp(0-inp*sigmoidScale));	// this will probably need to be scaled
+        return 1.0 / (1.0+ Math.exp(0-inp));	// this will probably need to be scaled
     }
 
     public static void initWeights(boolean rand){
@@ -246,8 +250,13 @@ public class backpropagation {
 
         //initializes random weights for everything
         for(int cl=1; cl<=numLayers-1; cl++){
-            for(int x=0; x<numInputs+1; x++){
-                for(int y=0; y<hiddenNeurons+1; y++){
+			int currLayerLen = numInputs + 1;
+			if(cl > 1) // Only fills used weights
+			{
+				currLayerLen = hiddenNeurons+1;
+			}
+            for(int x=0; x<currLayerLen; x++){
+                for(int y=0; y<hiddenNeurons; y++){
                     if(rand){
                         weights[cl][x][y] = Math.random()*2-1;
                     }
@@ -257,12 +266,12 @@ public class backpropagation {
                 }
             }
 
-            neurons[cl][hiddenNeurons+1]=1; // this is the bias
+            neurons[cl][hiddenNeurons]=1; // this is the bias
         }
         neurons[0][numInputs]=1;
         //initializes random weights for output
         for(int x=0; x<hiddenNeurons+1; x++){
-            for(int y=0; y<1; y++){
+            for(int y=0; y<numClasses; y++){
                 if(rand){
                     weights[numLayers][x][y] = Math.random()*2-1;
                 }
@@ -289,16 +298,18 @@ public class backpropagation {
             if (cl > 1) {
                 dim = hiddenNeurons;
             } //avoid null pointers (in case there are fewer dimensions in the input than neurons per hidden layer)
-            for (int y = 0; y < dim; y++) { //all neurons of the current layer
+			//all neurons of the current layer
+            for (int y = 0; y < hiddenNeurons; y++) { 
                 currentSum = 0; //reset the sum for each neuron
-                for (int x = 0; x < numInputs+1; x++) { // add up all neurons of the previous layer
+                for (int x = 0; x < dim+1; x++) { // add up all neurons of the previous layer
                     currentSum += neurons[cl - 1][x] * weights[cl][x][y];
                 }
                 neurons[cl][y] = currentSum;
             }
+			neurons[cl][hiddenNeurons] = 1;
         }
 
-        neurons[1][hiddenNeurons] = 1;
+        //neurons[1][hiddenNeurons] = 1;
 
         //just a little different for the last layer
         currentSum = 0;
@@ -314,54 +325,86 @@ public class backpropagation {
         //Initialize Neurons
         double[] x = neurons[0]; // Input layer(10 neurons + bias)
         double[] z = neurons[1]; // Hidden layer(6 neurons + bias)
+		double[] z2 = neurons[2]; // HIdden layer 2 (6 neurons + bias)
         double y[] = neurons[numLayers]; // Output layer(1 neuron)
         double r = listOfTrainingClassifications.get(n); //Target output
 
         //Initialize weights
         int layer = 0;//for now layer will be 0, or the input layer
-        double[][] w = vectorTranspose(weights[layer+1]); // w is 6x11 weights from input to hidden
-        double[][] v = vectorTranspose(weights[(weights.length-1)]); //v is 1x7 weights from hidden to output
-        double deltaW[][] = new double[hiddenNeurons][numInputs+1]; //+1 for bias
+		// u is 6x11 weights from inputs to hidden1
+		double[][] u = vectorTranspose(weights[layer+1]);
+		// w is 6x7 weights from hidden1 to hidden2
+        double[][] w = vectorTranspose(weights[layer+2]); 
+		//v is 1x7 weights from hidden to output
+        double[][] v = vectorTranspose(weights[(weights.length-1)]); 
+		double deltaU[][] = new double[hiddenNeurons][numInputs+1];
+        double deltaW[][] = new double[hiddenNeurons][hiddenNeurons+1]; //+1 for bias
         double deltaV[][] = new double[numClasses][hiddenNeurons + 1]; //+1 for bias
 
 
-        //Calculate z(hidden layer neuron values)
+        //Calculate z(hidden layer 1 neuron values)
         for (int h = 0; h < hiddenNeurons; h++){
-            double s = vectorTransposeMultiplication(w[h], x); //s = sumi(multiply w[h][i]*x[i])
+            double s = vectorTransposeMultiplication(u[h], x); //s = sumi(multiply w[h][i]*x[i])
             z[h] = sigmoid(s);
         }
         z[hiddenNeurons] = 1; //set bias
 
+		// Calculate z2 (hidden layer 2 neuron values)
+		for (int h = 0; h < hiddenNeurons; h++)
+		{
+			double s = vectorTransposeMultiplication(w[h], z);
+			z2[h] = sigmoid(s);
+		}
+
         //Calculate y(output layer neuron values)
         for (int i = 0; i < numClasses; i++){
-            y[i] = vectorTransposeMultiplication(v[i], z);
-
+            y[i] = vectorTransposeMultiplication(v[i], z2);
         }
 
-        //Find Change in v weights (weights[2])
+        //Find Change in v weights (weights[3])
         for (int i = 0; i < numClasses; i++){
             double s = learningRate*(r - y[i]);
-            deltaV[i] = vectorMultiplicationWithScalar(z, s); //deltaV[h] = alpha*(r-y)(z)
+            deltaV[i] = vectorMultiplicationWithScalar(z2, s); //deltaV[h] = alpha*(r-y)(z2)
         }
 
-        //Find Change in w weights (weights[1])
+        //Find Change in w weights (weights[2])
         for (int h = 0; h < hiddenNeurons; h++){
             double m = (r - y[0])*v[0][h];
-            double s = learningRate*m*sigmoidDerivative(z[h]);
-            deltaW[h] = vectorMultiplicationWithScalar(x, s); //deltaW[h] = (alpha*((r-y)*v[0][h])*z[h](1-z[h]))(x)
+            double s = learningRate*m*sigmoidDerivative(z2[h]);
+            deltaW[h] = vectorMultiplicationWithScalar(z, s); //deltaW[h] = (alpha*((r-y)*v[0][h])*z2[h](1-z2[h]))(z)
         }
+
+		// Find change in u weights (weights[1])
+		for (int h = 0; h < hiddenNeurons; h++)
+		{
+			double sum = 0;
+			for(int k = 0; k < hiddenNeurons; k++)
+			{
+				sum += v[0][k]*sigmoidDerivative(z2[k])*w[h][k]
+					*sigmoidDerivative(z[h]);
+			}
+			double m = learningRate*(r-y[0])*sum;
+
+			deltaU[h] = vectorMultiplicationWithScalar(x, m);
+		}
 
         //Update v weights (weights[numLayers])
         for (int i = 0; i < numClasses; i++){
             v[i] = addVectors(v[i], deltaV[i]);
         }
 
-        //Update w weights (weights[1])
+        //Update w weights (weights[2])
         for (int h = 0; h < hiddenNeurons; h++){
             w[h] = addVectors(w[h], deltaW[h]);
         }
 
-        weights[layer+1] = vectorTranspose(w); //puts updated weights w into input weights(weights[1]) variable
+		for (int h = 0; h < hiddenNeurons; h++)
+		{
+			u[h] = addVectors(u[h], deltaU[h]);
+		}
+
+		weights[layer+1] = vectorTranspose(u);
+        weights[layer+2] = vectorTranspose(w); //puts updated weights w into input weights(weights[1]) variable
         weights[weights.length-1] = vectorTranspose(v); //puts updated weights v into output weights(weights[2]) variable
         return;
     }
