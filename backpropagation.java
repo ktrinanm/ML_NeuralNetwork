@@ -91,12 +91,13 @@ public class backpropagation {
                 }
                 System.out.println("Errors in training: " + errors);
                 sample = 0;
-				prevErr = errors;
 
 				if(prevErr < errors)
 				{
 					learningRate /= 2;
 				}
+
+				prevErr = errors;
             }
 
             //Network Training
