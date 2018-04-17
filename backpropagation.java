@@ -1,0 +1,566 @@
+import java.io.*;
+import java.util.*;
+import java.lang.Integer;
+
+public class backpropagation {
+    public static int [] classification;
+    public static double [] radii, textures, perimeters, area, smoothness,
+            compactness, concavity, concavePnts, symmetry, fractalDim;
+    public static ArrayList<double[]> listOfTrainingData;
+    public static ArrayList<Integer> listOfTrainingClassifications;
+
+    public static double[][] neurons;  //store the state of each neuron (or input and output node)
+    public static double[][][] weights;//stores what is says on the tin
+    public static int numLayers; //number of layers, first always input, end always output, middle hidden
+    public static int hiddenNeurons; //number of nodes in each hidden layer, probably should be per layer, but whatever
+    public static int numClasses; //number of clasifications, futureproofing
+    public static double learningRate; //the magic learning rate aka alpha
+    public static ArrayList<double[]> listOfTestData;
+    public static ArrayList<Integer> listOfTestClassifications;
+    public static int numInputs;
+
+    public static double[] scaleInput; //scale and offset such that all input data is in the range 0-1
+    public static double[] offsetInput;
+
+    public static int numLines=569;
+
+
+    public static int epochs = 1000;
+    public static int trainingReps = epochs * 455; //will be used when running mine and joes code.
+
+
+
+
+    public static void main(String [] args)
+    {
+        classification = new int[numLines];
+
+        //The 10 factors we're accounting for.
+        radii = new double[numLines];
+        textures = new double[numLines];
+        perimeters = new double[numLines];
+        area = new double[numLines];
+        smoothness = new double[numLines];
+        compactness = new double[numLines];
+        concavity = new double[numLines];
+        concavePnts = new double[numLines];
+        symmetry = new double[numLines];
+        fractalDim = new double[numLines];
+
+        //fill data from file
+        readDataFromFile();
+        putDataInArrayList();
+
+        //Scaling inputs
+        prescale(listOfTestData);
+        ArrayList<double[]> temp = scaleAllTheThings(listOfTestData);
+        listOfTestData = temp;
+
+        
+        numLayers = 3; //0=input, 1=hidden, 2=output
+        hiddenNeurons = 6; //an arbitrary number i picked
+        numInputs = 10;
+        numClasses = 1; //outputNeuron (2 classes)
+        learningRate = .01;
+
+        //removeOutliers(5, 4); //this will take a while
+        removeOutliers(10, 8);
+        //Separate date into training and testing data
+        randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists();
+
+        runNetwork(listOfTrainingData,listOfTrainingClassifications);
+        runTests();
+       
+    }
+    public static void runTests(){
+        //Running Test on Testing data
+        double guess; //calculated output for test data
+        double real; //target output from test classification
+        int benignRight = 0;
+        int benignWrong = 0;
+        int malignantRight = 0;
+        int malignantWrong = 0;
+
+
+        int errors = 0;
+        int correct= 0;
+        for (int i = 0; i < listOfTestData.size(); i++){
+            think(listOfTestData.get(i)); //change nodes through forward propagation using weights calculated in backPropagation
+            if (sigmoid(neurons[numLayers][0]) < .5){ //sets calculated output to either 1 or 0 for comparison;
+                guess = 0;
+            } else {
+                guess = 1;
+            }
+            real = listOfTestClassifications.get(i);
+
+            if (real == guess){ // update values if network guessed correctly
+                correct++;
+                if (real == 0){
+                    benignRight++;
+                } else {
+                    malignantRight++;
+                }
+            }else{ // Update values if network guessed incorrectly
+                errors++;
+                if (real == 0){
+                    benignWrong++;
+                } else {
+                    malignantWrong++;
+                }
+            }
+        }
+
+
+
+        //Data Analysis
+        System.out.println("Correct: " + correct);
+        System.out.println("Errors: " + errors);
+        System.out.println("Correctly identified Benign: " + benignRight);
+        System.out.println("Incorrectly identified Benign: " + benignWrong);
+        System.out.println("Correctly identified Malignant: " + malignantRight);
+        System.out.println("Incorrectly identified Malignant: " + malignantWrong);
+
+
+    }
+    public static void runNetwork(ArrayList<double[]> inputData, ArrayList<Integer> inputClass){
+           //
+    
+   
+         
+           int prevErr = 0;
+   
+           //Run Network
+           int sample = 0;
+           for (int i = 0; i < trainingReps; i++){
+               sample ++;
+               if (sample == inputData.size()){ //When all training data has been run through, start over.
+                   int errors = 0;
+                    // Run test on training data to see if we are converging 
+                   // or diverging
+                   for(int j = 0; j < sample; j++)
+                   {
+                       think(inputData.get(j));
+                       if( (sigmoid(neurons[3][0]) < 0.5
+                                   && inputClass.get(j)!= 0)
+                               || (sigmoid(neurons[3][0]) >= 0.5
+                                   && inputClass.get(j)!=1))
+                       {
+                           errors++;
+                       }
+                   }
+                 //  System.out.println("Errors in training: " + errors);
+                   sample = 0;
+   
+                   if(prevErr < errors)
+                   {
+                       learningRate /= 2;
+                   }
+   
+                   prevErr = errors;
+               }
+   
+               //Network Training
+               think(inputData.get(sample));//put the sample data point through the network
+               backPropagate(inputClass.get(sample));//backwards propagate through the network on data point sample
+           }
+   
+    }
+
+    public static void removeOutliers(int repeats, int co){
+        //run the prediction on each point after training
+        //if it gets the point wrong, keep track of how many times it is wrong
+        //
+        
+
+
+        double real;
+        double guess;
+        int[] guessedRong = new int[listOfTestData.size()];
+        int n=0;
+        for(int r=0; r<repeats; r++){
+        n=0;
+        //System.out.println("outlier detection run: "+r);
+        initWeights(true);
+        runNetwork(listOfTestData, listOfTestClassifications);  //run the network on everything
+        learningRate = .01;
+        for (int i = 0; i < listOfTestData.size(); i++){
+            think(listOfTestData.get(i)); //change nodes through forward propagation using weights calculated in backPropagation
+            if (neurons[numLayers][0] < .5){ //sets calculated output to either 1 or 0 for comparison;
+                guess = 0;
+            } else {
+                guess = 1;
+            }
+            real = listOfTestClassifications.get(i);
+            if (real != guess){ //remove data point if wrong
+                guessedRong[i]++;
+                n++;
+            }
+        }
+      //  System.out.println("outliers found: "+n);
+        learningRate = .01;
+    }
+
+n=0;
+ArrayList<double[]> temp1 = new ArrayList<double[]>();
+ArrayList<Integer> temp2 = new ArrayList<Integer>();
+System.out.print("outliers removed: ");    
+for(int i=0; i<listOfTestData.size(); i++){
+        if(guessedRong[i] < co){
+            temp1.add(listOfTestData.get(i));
+            temp2.add(listOfTestClassifications.get(i));
+            
+        }
+        else{
+            n++;
+            System.out.print(i+" ");
+        }
+    }
+    System.out.println();
+    listOfTestData = new ArrayList<>(temp1);
+    listOfTestClassifications = new ArrayList<>(temp2);
+    //listOfTestData.removeAll(remove1);
+    //listOfTestClassifications.removeAll(remove2);
+    System.out.println("total items removed: "+n);
+}
+
+
+    public static void readDataFromFile()
+    {
+        String dataFileName = "data.txt";
+        String line = "";
+        int currLineNum = 0;
+
+        try
+        {
+            BufferedReader bufferedReader
+                    = new BufferedReader(new FileReader(dataFileName));
+
+            while((line = bufferedReader.readLine()) != null)
+            {
+                String [] data = line.split(",");
+
+                classification[currLineNum]
+                        = (data[1].charAt(0) == 'M' ? 1 : 0);
+                radii[currLineNum] = Double.parseDouble(data[2]);
+                textures[currLineNum] = Double.parseDouble(data[3]);
+                perimeters[currLineNum] = Double.parseDouble(data[4]);
+                area[currLineNum] = Double.parseDouble(data[5]);
+                smoothness[currLineNum] = Double.parseDouble(data[6]);
+                compactness[currLineNum] = Double.parseDouble(data[7]);
+                concavity[currLineNum] = Double.parseDouble(data[8]);
+                concavePnts[currLineNum] = Double.parseDouble(data[9]);
+                symmetry[currLineNum] = Double.parseDouble(data[10]);
+                fractalDim[currLineNum] = Double.parseDouble(data[11]);
+                currLineNum++;
+            }
+            bufferedReader.close();
+        }
+        catch (Exception exc)
+        {
+            System.out.println("Error reading data from file at line "
+                    + currLineNum);
+            return;
+        }
+    }
+
+    public static void putDataInArrayList()
+    {
+
+        listOfTrainingData= new ArrayList<double[]>();
+        listOfTrainingClassifications= new ArrayList<Integer>();
+
+        listOfTestData= new ArrayList<double[]>();
+        listOfTestClassifications= new ArrayList<Integer>();
+
+        for(int i=0; i<numLines; i++)
+        {
+            double[] toAdd= new double[10];
+
+            toAdd[0]=radii[i];
+            toAdd[1]=textures[i];
+            toAdd[2]=perimeters[i];
+            toAdd[3]=area[i];
+            toAdd[4]=smoothness[i];
+            toAdd[5]=compactness[i];
+            toAdd[6]=concavity[i];
+            toAdd[7]=concavePnts[i];
+            toAdd[8]=symmetry[i];
+            toAdd[9]=fractalDim[i];
+
+            listOfTestData.add(toAdd);
+            listOfTestClassifications.add(classification[i]);
+        }
+    }
+
+    public static void randomlySelectDataForTrainingAndTestingPurposesAndPutThemInDifferentArrayLists()
+    {
+        int eightyPercentOfData= (int) (listOfTestData.size()*.8);
+
+        for(int i=0; i<eightyPercentOfData; i++)
+        {
+            int toRemove= (int) (Math.random()*listOfTestData.size());
+            listOfTrainingData.add(listOfTestData.remove(toRemove));
+            listOfTrainingClassifications.add(listOfTestClassifications.remove(toRemove));
+        }
+        System.out.println("Testing Data Size: " + listOfTestData.size() + "\tTesting Classification Size: " + listOfTestClassifications.size() + "\tThese should be equal.");
+        System.out.println("Training Data Size: " + listOfTrainingData.size() + "\tTraining Classification Size: " + listOfTrainingClassifications.size() + "\tThese should be equal.");
+    }
+
+    public static double sigmoid(double inp){   //the sigmoid function
+        return 1.0 / (1.0+ Math.exp(0-inp));	// this will probably need to be scaled
+    }
+
+    public static void initWeights(boolean rand){
+        int dimension = listOfTestData.get(0).length;
+        weights = new double[numLayers+1][numInputs+1][numInputs+1]; //yes, this is a memory hog.
+        neurons = new double[numLayers + 1][dimension + 1];
+        double fixed = 1/hiddenNeurons; // this would have the first weights basically cause each neuron
+        // to return an average of its inputs
+
+        //initializes random weights for everything
+        for(int cl=1; cl<=numLayers-1; cl++){
+			int currLayerLen = numInputs + 1;
+			if(cl > 1) // Only fills used weights
+			{
+				currLayerLen = hiddenNeurons+1;
+			}
+            for(int x=0; x<currLayerLen; x++){
+                for(int y=0; y<hiddenNeurons; y++){
+                    if(rand){
+                        weights[cl][x][y] = Math.random()*2-1;
+                    }
+                    else{
+                        weights[cl][x][y]=fixed;
+                    }
+                }
+            }
+
+            neurons[cl][hiddenNeurons]=1; // this is the bias
+        }
+        neurons[0][numInputs]=1;
+        //initializes random weights for output
+        for(int x=0; x<hiddenNeurons+1; x++){
+            for(int y=0; y<numClasses; y++){
+                if(rand){
+                    weights[numLayers][x][y] = Math.random()*2-1;
+                }
+                else{
+                    weights[numLayers][x][y]=fixed;
+                }
+            }
+        }
+
+    }
+
+
+    public static void think(double[] input) { // Forward Propagation
+        int dimension = input.length;
+
+        for (int i = 0; i < dimension; i++) { //populate the input layer
+            neurons[0][i] = input[i];
+        }
+        neurons[0][dimension] = 1;
+
+        double currentSum = 0; //this will store the sum
+        int dim = dimension; //temp variable
+        for (int cl = 1; cl <= numLayers - 1; cl++) {
+            if (cl > 1) {
+                dim = hiddenNeurons;
+            } //avoid null pointers (in case there are fewer dimensions in the input than neurons per hidden layer)
+			//all neurons of the current layer
+            for (int y = 0; y < hiddenNeurons; y++) { 
+                currentSum = 0; //reset the sum for each neuron
+                for (int x = 0; x < dim+1; x++) { // add up all neurons of the previous layer
+                    currentSum += neurons[cl - 1][x] * weights[cl][x][y];
+                }
+                neurons[cl][y] = currentSum;
+            }
+			neurons[cl][hiddenNeurons] = 1;
+        }
+
+        //neurons[1][hiddenNeurons] = 1;
+
+        //just a little different for the last layer
+        currentSum = 0;
+        for (int x = 0; x < hiddenNeurons+1; x++) { // add up all neurons of the previous layer
+            currentSum += neurons[numLayers - 1][x] * weights[numLayers][x][0];
+        }
+        neurons[numLayers][0] = currentSum;
+    }
+
+
+    //BACKPROBAGATE
+    private static void backPropagate(double r) { //n is the datapoint index we are working on
+        //Initialize Neurons
+        double[] x = neurons[0]; // Input layer(10 neurons + bias)
+        double[] z = neurons[1]; // Hidden layer(6 neurons + bias)
+		double[] z2 = neurons[2]; // HIdden layer 2 (6 neurons + bias)
+        double y[] = neurons[numLayers]; // Output layer(1 neuron)
+        //double r = listOfTrainingClassifications.get(n); //Target output
+
+        //Initialize weights
+        int layer = 0;//for now layer will be 0, or the input layer
+		// u is 6x11 weights from inputs to hidden1
+		double[][] u = vectorTranspose(weights[layer+1]);
+		// w is 6x7 weights from hidden1 to hidden2
+        double[][] w = vectorTranspose(weights[layer+2]); 
+		//v is 1x7 weights from hidden to output
+        double[][] v = vectorTranspose(weights[(weights.length-1)]); 
+		double deltaU[][] = new double[hiddenNeurons][numInputs+1];
+        double deltaW[][] = new double[hiddenNeurons][hiddenNeurons+1]; //+1 for bias
+        double deltaV[][] = new double[numClasses][hiddenNeurons + 1]; //+1 for bias
+
+
+        //Calculate y(output layer neuron values)
+        for (int i = 0; i < numClasses; i++){
+            y[i] = vectorTransposeMultiplication(v[i], z2);
+        }
+
+		// Calculate z2 (hidden layer 2 neuron values)
+		for (int h = 0; h < hiddenNeurons; h++)
+		{
+			double s = vectorTransposeMultiplication(w[h], z);
+			z2[h] = sigmoid(s);
+		}
+		z2[hiddenNeurons] = 1;
+
+        //Calculate z(hidden layer 1 neuron values)
+        for (int h = 0; h < hiddenNeurons; h++){
+            double s = vectorTransposeMultiplication(u[h], x); //s = sumi(multiply w[h][i]*x[i])
+            z[h] = sigmoid(s);
+        }
+        z[hiddenNeurons] = 1; //set bias
+
+        //Find Change in v weights (weights[3])
+        for (int i = 0; i < numClasses; i++){
+            double s = learningRate*(r - sigmoid(y[i]));
+            deltaV[i] = vectorMultiplicationWithScalar(z2, s); //deltaV[h] = alpha*(r-y)(z2)
+        }
+
+        //Find Change in w weights (weights[2])
+        for (int h = 0; h < hiddenNeurons; h++){
+            double m = (r - sigmoid(y[0]))*v[0][h];
+            double s = learningRate*m*sigmoidDerivative(z2[h]);
+            deltaW[h] = vectorMultiplicationWithScalar(z, s); //deltaW[h] = (alpha*((r-y)*v[0][h])*z2[h](1-z2[h]))(z)
+        }
+
+		// Find change in u weights (weights[1])
+		for (int h = 0; h < hiddenNeurons; h++)
+		{
+			double sum = 0;
+			for(int k = 0; k < hiddenNeurons; k++)
+			{
+				sum += v[0][k]*sigmoidDerivative(z2[k])*w[h][k]
+					*sigmoidDerivative(z[h]);
+			}
+			double m = learningRate*(r-sigmoid(y[0]))*sum;
+
+			deltaU[h] = vectorMultiplicationWithScalar(x, m);
+		}
+
+        //Update v weights (weights[numLayers])
+        for (int i = 0; i < numClasses; i++){
+            v[i] = addVectors(v[i], deltaV[i]);
+        }
+
+        //Update w weights (weights[2])
+        for (int h = 0; h < hiddenNeurons; h++){
+            w[h] = addVectors(w[h], deltaW[h]);
+        }
+
+		for (int h = 0; h < hiddenNeurons; h++)
+		{
+			u[h] = addVectors(u[h], deltaU[h]);
+		}
+
+		weights[layer+1] = vectorTranspose(u);
+        weights[layer+2] = vectorTranspose(w); //puts updated weights w into input weights(weights[1]) variable
+        weights[weights.length-1] = vectorTranspose(v); //puts updated weights v into output weights(weights[2]) variable
+        return;
+    }
+
+    private static double sigmoidDerivative(final double val){
+        return (val * (1.0 - val));
+    }
+
+
+    //Linear Algebra Functions
+    private static double vectorTransposeMultiplication(double[] A, double[] B){
+        double result = 0.0;
+        for (int i = 0; i < A.length; i++){
+            result += (A[i]*B[i]);
+        }
+        return result;
+    }
+
+    private static double[] vectorMultiplicationWithScalar(double[] A, double s){
+        double[] result = new double[A.length];
+        for (int i = 0; i < A.length; i++){
+            result[i] = A[i]*s;
+        }
+        return result;
+    }
+
+    private static double[] addVectors(double[] A, double[] B){
+        double[] result = new double[A.length];
+        for (int i = 0; i < B.length; i++){
+            result[i] = A[i] + B[i];
+        }
+        return result;
+    }
+
+    private static double [][] vectorTranspose(double[][] A) {
+        double [][] result = new double[A[0].length][A.length];
+
+        for(int i = 0; i < A.length; i++) {
+            for(int j = 0; j < A[0].length; j++) {
+                result[j][i] = A[i][j];
+            }
+        }
+
+        return result;
+    }
+
+
+    //Scaling Functions
+    public static void prescale(ArrayList<double[]> input){
+        int datSize = input.get(0).length;
+        double[] dataMax = new double[datSize];
+        double[] dataMin = new double[datSize];
+        offsetInput = new double[datSize];
+        scaleInput = new double[datSize];
+        double[] dat;
+        for(int i=0; i<datSize; i++){
+            dataMax[i]=Double.MIN_VALUE;
+            dataMin[i]=Double.MAX_VALUE;
+        }
+        for(int j=0; j<datSize; j++){
+            dat = input.get(j);
+            for(int i=0; i<datSize; i++){
+                if(dat[i] < dataMin[i]){dataMin[i]=dat[i];}
+                if(dat[i] > dataMax[i]){dataMax[i]=dat[i];}
+            }
+        }
+        for(int i=0; i<datSize; i++){
+            offsetInput[i] = dataMin[i];
+            scaleInput[i] = 1/(dataMax[i]-dataMin[i]);
+        }
+    }
+    public static double[] scaled(double[] input){
+        double[] temp = input;
+        int datSize = input.length;
+        for(int i=0; i<datSize; i++){
+            temp[i] = (input[i]-offsetInput[i])*scaleInput[i];
+        }
+        return temp;
+    }
+    public static ArrayList<double[]> scaleAllTheThings(ArrayList<double[]> input){
+        ArrayList<double[]> temp = new ArrayList<double[]>();
+
+        for(double[] d: input){
+            temp.add(scaled(d));
+        }
+        return temp;
+    }
+
+}
